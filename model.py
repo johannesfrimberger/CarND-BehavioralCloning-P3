@@ -31,7 +31,7 @@ import random
 
 def create_cnn_model(feature_shape):
 
-    p_dropout = 0.2
+    p_dropout = 0.5
     pool_size = (2, 3)
     model = Sequential()
 
@@ -123,6 +123,7 @@ def merge_training_data(folder):
 
     return [merged_features, merged_steering]
 
+
 def apply_roi(img):
     """
 
@@ -132,6 +133,7 @@ def apply_roi(img):
     img = img[60:140, 40:280]
     return cv2.resize(img, (200, 66))
 
+
 def process_image(colorImage):
     """
     Load image and convert it to YUV color space
@@ -139,7 +141,11 @@ def process_image(colorImage):
     :return: Np array containing image
     """
     yuv = cv2.cvtColor(colorImage, cv2.COLOR_RGB2YUV)
-    return apply_roi(yuv).astype(np.float)
+    r_channel = colorImage[:, :, 0]
+    r_channel = r_channel[:, :, np.newaxis]
+    data = np.concatenate((yuv, r_channel), axis=2)
+
+    return apply_roi(data).astype(np.float)
 
 
 def process_inputs(feature, steering, steering_offset = 0.):
@@ -147,14 +153,14 @@ def process_inputs(feature, steering, steering_offset = 0.):
 
     :param feature:
     :param steering:
-    :param steering_fac:
+    :param steering_offset:
     :return:
     """
 
     data = []
     for ind, filename in enumerate(feature):
-        colorImage = mpimg.imread(filename)
-        data.append(process_image(colorImage))
+        color_image = mpimg.imread(filename)
+        data.append(process_image(color_image))
 
     return np.asarray(data), (steering + steering_offset)
 
@@ -179,8 +185,8 @@ def batch_generator(features, steering, batch_size, use_left_right=False):
         current_steering = steering[start_ind:(start_ind + batch_size)]
 
         (features1, steering1) = process_inputs(current_features[:, 0], current_steering, steering_offset=0.)
-        (features2, steering2) = process_inputs(current_features[:, 1], current_steering, steering_offset=0.1)
-        (features3, steering3) = process_inputs(current_features[:, 2], current_steering, steering_offset=-0.1)
+        (features2, steering2) = process_inputs(current_features[:, 1], current_steering, steering_offset=0.04)
+        (features3, steering3) = process_inputs(current_features[:, 2], current_steering, steering_offset=-0.04)
 
         if use_left_right:
             batch_features = np.concatenate((features1, features2, features3), axis=0)
@@ -197,13 +203,16 @@ def batch_generator(features, steering, batch_size, use_left_right=False):
 
         yield(batch_features, batch_steering)
 
-def main(training_data, n_epochs, load_model):
 
-    # Set shape of input images
-    feature_shape = (66, 200, 3)
+def main(training_data, n_epochs, load_model, additional_data):
+
+    # Set shape of input images (for convenience)
+    feature_shape = (66, 200, 4)
+
+    model_filename = "model.json"
+    weights_filename = model_filename.replace('json', 'h5')
 
     # Load all training data from data folder
-    print("Read training data from {}".format(training_data))
     all_features, all_steering = merge_training_data(training_data)
 
     # Split data into training and validation set.
@@ -214,51 +223,22 @@ def main(training_data, n_epochs, load_model):
         test_size=0.05,
         random_state=10)
 
-    steering_thresh = 0.03
-
-    steering_left = np.where(all_steering < -steering_thresh)
-    steering_right = np.where(all_steering > steering_thresh)
-    steering_center = np.where(np.logical_and(all_steering > -steering_thresh, all_steering < steering_thresh))
-
-    print(steering_left)
-
-    random.seed(10)
-    random.shuffle(steering_left)
-    random.shuffle(steering_right)
-    random.shuffle(steering_center)
-
-    n_left = steering_left[0].shape[0]
-    n_right = steering_right[0].shape[0]
-    n_center = steering_center[0].shape[0]
-
-    print(n_left)
-    print(n_right)
-    print(n_center)
-
     # Give a short summary of the data
     n_training_scene = training_features.shape[0]
-    n_training_features = n_training_scene * 3
-    print("Training the model on {} images from {} scenes".format(n_training_features, n_training_scene))
+    print("Training the model on {} scenes".format(n_training_scene))
     n_valid_scenes = valid_features.shape[0]
-    n_valid_features = n_valid_scenes * 3
-    print("Validation of the model is done on {} images from {} scenes".format(n_valid_features, n_valid_scenes))
+    print("Validation of the model is done on {} scenes".format(n_valid_scenes))
 
     # Define model
     if load_model:
-        filename = "model.json"
-        print("Load Model {}".format(filename))
-        with open(filename, 'r') as jfile:
+        print("Load Model {}".format(model_filename))
+        with open(model_filename, 'r') as jfile:
             model = model_from_json(json.load(jfile))
-
-        weights_file = filename.replace('json', 'h5')
-        model.load_weights(weights_file)
-        #optimizer = Adam(lr=0.00001, decay=0.01)
-        optimizer = Adam(lr=0.00001)
-
+        model.load_weights(weights_filename)
+        optimizer = Adam(lr=0.000001)
     else:
         print("Create new model")
         model = create_cnn_model(feature_shape)
-        #optimizer = Adam(lr=0.00001, decay=0.0)
         optimizer = Adam(lr=0.00001)
 
     model.compile(optimizer=optimizer, loss="mse")
@@ -266,18 +246,23 @@ def main(training_data, n_epochs, load_model):
     # Define some parameters for optimization
     batch_size = 5
 
-    training_samples_per_epoch = math.ceil(n_training_scene / batch_size)
-    valid_samples_per_epoch = math.ceil(n_valid_features / batch_size)
+    # Using left and right images gives 3 times the number of samples
+    if additional_data:
+        training_samples_per_epoch = n_training_scene * 3
+    else:
+        training_samples_per_epoch = n_training_scene
 
-    history = model.fit_generator(batch_generator(training_features, training_steering, batch_size, False),
-                                  samples_per_epoch=training_samples_per_epoch, nb_epoch=n_epochs,
-                                  validation_data=batch_generator(valid_features, valid_steering, batch_size),
-                                  nb_val_samples=valid_samples_per_epoch, verbose=1)
+    valid_samples_per_epoch = n_valid_scenes
 
-    with open("model.json", "w") as outfile:
+    model.fit_generator(batch_generator(training_features, training_steering, batch_size, additional_data),
+                        samples_per_epoch=training_samples_per_epoch, nb_epoch=n_epochs,
+                        validation_data=batch_generator(valid_features, valid_steering, batch_size),
+                        nb_val_samples=valid_samples_per_epoch, verbose=1)
+
+    with open(model_filename, "w") as outfile:
         json.dump(model.to_json(), outfile)
 
-    model.save_weights("model.h5")
+    model.save_weights(weights_filename)
 
     # Predict steering angle for small subsample to check basis functionality
 
@@ -295,19 +280,30 @@ def main(training_data, n_epochs, load_model):
     left = prediction[1][0]
     right = prediction[2][0]
 
-    print("Center is {} ({})".format(center, inputSteering[0]))
-    print("Left is {} ({})".format(left, inputSteering[1]))
-    print("Right is {} ({})".format(right, inputSteering[2]))
+    print("Prediction for center test image is {} ({})".format(center, inputSteering[0]))
+    print("Prediction for left test image is {} ({})".format(left, inputSteering[1]))
+    print("Prediction for right test image is {} ({})".format(right, inputSteering[2]))
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Build Remote Driving Model')
-    parser.add_argument('training_data', type=str,
-                        help='Path to training data used to train and validate classifier.')
-    parser.add_argument('n_epochs', type=int,
-                       help='Path to training data used to train and validate classifier.')
-    parser.add_argument('load_model', type=int,
-                        help='Load model')
+
+    parser.add_argument("-t", "--training_data", help="Path to training data used to train and validate classifier",
+                        required=True)
+    parser.add_argument("-n", "--n_epochs", help="Number of epochs used for training", type=int,
+                        default=5)
+    parser.add_argument("-l", "--load_model", help="Load model and improve results", type=int,
+                        default=0)
+    parser.add_argument("-a", "--additional_data", help="Use left and right images for training", type=int,
+                        default=0)
+
     args = parser.parse_args()
 
-    main(args.training_data, args.n_epochs, (args.load_model > 0))
+    print("Settings")
+    print("training_data: {}".format(args.training_data))
+    print("n_epochs: {}".format(args.n_epochs))
+    print("load_model: {}".format(args.load_model))
+    print("additional_data: {}".format(args.additional_data))
+    print("Start training model")
+
+    main(args.training_data, args.n_epochs, (args.load_model > 0), (args.additional_data > 0))
