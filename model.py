@@ -31,7 +31,7 @@ import random
 
 def create_cnn_model(feature_shape):
 
-    p_dropout = 0.5
+    p_dropout = 0.2
     pool_size = (2, 3)
     model = Sequential()
 
@@ -148,7 +148,7 @@ def process_image(colorImage):
     return apply_roi(data).astype(np.float)
 
 
-def process_inputs(feature, steering, steering_offset = 0.):
+def process_inputs(feature, steering, steering_offset=0.):
     """
 
     :param feature:
@@ -185,8 +185,8 @@ def batch_generator(features, steering, batch_size, use_left_right=False):
         current_steering = steering[start_ind:(start_ind + batch_size)]
 
         (features1, steering1) = process_inputs(current_features[:, 0], current_steering, steering_offset=0.)
-        (features2, steering2) = process_inputs(current_features[:, 1], current_steering, steering_offset=0.04)
-        (features3, steering3) = process_inputs(current_features[:, 2], current_steering, steering_offset=-0.04)
+        (features2, steering2) = process_inputs(current_features[:, 1], current_steering, steering_offset=-0.02)
+        (features3, steering3) = process_inputs(current_features[:, 2], current_steering, steering_offset=0.02)
 
         if use_left_right:
             batch_features = np.concatenate((features1, features2, features3), axis=0)
@@ -244,7 +244,7 @@ def main(training_data, n_epochs, load_model, additional_data):
     model.compile(optimizer=optimizer, loss="mse")
 
     # Define some parameters for optimization
-    batch_size = 5
+    batch_size = 10
 
     # Using left and right images gives 3 times the number of samples
     if additional_data:
