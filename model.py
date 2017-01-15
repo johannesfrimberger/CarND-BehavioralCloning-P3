@@ -29,10 +29,11 @@ import math
 import json
 import random
 
+
 def create_commaai_model(feature_shape):
     p_dropout = 0.2
 
-    ch, row, col = feature_shape
+    ch, col, row = feature_shape
     #ch, row, col = 3, 160, 320
 
     model = Sequential()
@@ -157,7 +158,8 @@ def apply_roi(img):
     :return:
     """
     img = img[60:140, 40:280]
-    return cv2.resize(img, (200, 66))
+    data = cv2.resize(img, (200, 66))
+    return np.swapaxes(data, 0, 2)
 
 
 def process_image(colorImage):
@@ -234,6 +236,7 @@ def main(training_data, n_epochs, load_model, additional_data):
 
     # Set shape of input images (for convenience)
     feature_shape = (66, 200, 4)
+    feature_shape = (4, 66, 200)
 
     model_filename = "model.json"
     weights_filename = model_filename.replace('json', 'h5')
@@ -264,7 +267,7 @@ def main(training_data, n_epochs, load_model, additional_data):
         optimizer = Adam(lr=0.000001)
     else:
         print("Create new model")
-        model = create_cnn_model(feature_shape)
+        model = create_commaai_model(feature_shape)
         optimizer = Adam(lr=0.00001)
 
     model.compile(optimizer=optimizer, loss="mse")

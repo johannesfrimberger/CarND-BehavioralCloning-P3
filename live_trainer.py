@@ -67,9 +67,12 @@ def telemetry(sid, data):
     for e in event.get():
         if e.type == JOYAXISMOTION and e.dict["axis"] == 0:
             joy_steering = 0.8563391 * e.dict["value"]
-        elif e.type == JOYBUTTONDOWN and e.dict["button"] == 0:
+        elif e.type == JOYBUTTONDOWN and (e.dict["button"] == 0 or e.dict["button"] == 2):
             auto_mode = not auto_mode
             print("Switch auto_mode to {}".format(auto_mode))
+            if e.dict["button"] == 2:
+                training_images[:] = []
+                training_steering[:] = []
         elif e.type == JOYBUTTONDOWN and e.dict["button"] == 1:
             joy_steering = 0
             print("Reset steering request to {}".format(joy_steering))
@@ -87,22 +90,23 @@ def telemetry(sid, data):
 
     if (auto_mode and not(prev_auto_mode)):
         print("Start training")
-        n_samples = len(training_images)
-        ind = np.arange(n_samples)
-        random.shuffle(ind)
-        img = np.asarray(training_images)
-        st = np.asarray(training_steering)
-        training_images[:] = []
-        training_steering[:] = []
-        model.fit(img[ind], st[ind], batch_size=10, nb_epoch=2, verbose=1)
+        if len(training_images) > 0:
+            n_samples = len(training_images)
+            ind = np.arange(n_samples)
+            random.shuffle(ind)
+            img = np.asarray(training_images)
+            st = np.asarray(training_steering)
+            training_images[:] = []
+            training_steering[:] = []
+            model.fit(img[ind], st[ind], batch_size=10, nb_epoch=2, verbose=1)
 
-        model_filename = "updated_model.json"
-        weights_filename = model_filename.replace('json', 'h5')
+            model_filename = "updated_model.json"
+            weights_filename = model_filename.replace('json', 'h5')
 
-        with open(model_filename, "w") as outfile:
-            json.dump(model.to_json(), outfile)
+            with open(model_filename, "w") as outfile:
+                json.dump(model.to_json(), outfile)
 
-        model.save_weights(weights_filename)
+            model.save_weights(weights_filename)
 
     # The driving model currently just outputs a constant throttle. Feel free to edit this.
     throttle = 0.5
