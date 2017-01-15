@@ -49,5 +49,5 @@ In the end the model is capable of providing a
 References
 ----------
 
-[1] https://upload.wikimedia.org/wikipedia/commons/4/4d/Xbox-360-Wireless-Controller-White.jpg
-[2] http://opengameart.org/content/free-keyboard-and-controllers-prompts-pack
+[1] https://upload.wikimedia.org/wikipedia/commons/4/4d/Xbox-360-Wireless-Controller-White.jpg <br />
+[2] http://opengameart.org/content/free-keyboard-and-controllers-prompts-pack <br />
