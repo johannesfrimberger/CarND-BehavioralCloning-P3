@@ -38,6 +38,7 @@ prev_image_array = None
 
 lp_steering_angle = 0
 auto_mode = True
+joy_steering = 0
 
 training_images = []
 training_steering = []
@@ -59,9 +60,9 @@ def telemetry(sid, data):
     # Define global variables
     global lp_steering_angle
     global auto_mode
+    global joy_steering
 
     # Init variables and copy previous state
-    joy_steering = 0.
     prev_auto_mode = auto_mode
 
     # Read data from gamepad
@@ -81,7 +82,7 @@ def telemetry(sid, data):
         # For B button reset steering low pass to 0
         elif e.type == JOYBUTTONDOWN and e.dict["button"] == 1:
             lp_steering_angle = 0
-            print("Reset steering request to {}".format(joy_steering))
+            print("Reset steering request to {}".format(lp_steering_angle))
 
     # Switch between autonomous and manual driving
     if auto_mode:
