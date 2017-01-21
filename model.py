@@ -44,7 +44,7 @@ def create_cnn_model(feature_shape):
     model.add(Convolution2D(32, 5, 5, subsample=(2, 2), border_mode="same"))
     model.add(ELU())
 
-    # Add 3rd convolutional layer with  and flatten output
+    # Add 3rd convolutional layer with 64 5x5 kernels and flatten output
     # exponential linear unit applied to output and dropout applied to flatten layer
     model.add(Convolution2D(64, 5, 5, subsample=(2, 2), border_mode="same"))
     model.add(Flatten())
