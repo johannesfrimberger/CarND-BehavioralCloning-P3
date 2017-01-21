@@ -34,15 +34,18 @@ def create_cnn_model(feature_shape):
                      input_shape=(ch, row, col),
                      output_shape=(ch, row, col)))
 
-    #
+    # Add 1st convolutional layer with 16 8x8 kernels and
+    # exponential linear unit applied to output
     model.add(Convolution2D(16, 8, 8, subsample=(4, 4), border_mode="same"))
     model.add(ELU())
 
-    #
+    # Add 2nd convolutional layer with 32 5x5 kernels and
+    # exponential linear unit applied to output
     model.add(Convolution2D(32, 5, 5, subsample=(2, 2), border_mode="same"))
     model.add(ELU())
 
-    #
+    # Add 3rd convolutional layer with  and flatten output
+    # exponential linear unit applied to output and dropout applied to flatten layer
     model.add(Convolution2D(64, 5, 5, subsample=(2, 2), border_mode="same"))
     model.add(Flatten())
     model.add(Dropout(.2))
@@ -265,17 +268,17 @@ def main(training_data, n_epochs, load_model, additional_data):
 
     # Get first batch of features
     b = batch_generator(all_features, all_steering, batch_size)
-    inputFeature, inputSteering = b.__next__()
+    input_feature, input_steering = b.__next__()
 
-    prediction = model.predict(inputFeature)
+    prediction = model.predict(input_feature)
 
     center = prediction[0][0]
     left = prediction[1][0]
     right = prediction[2][0]
 
-    print("Prediction for center test image is {} ({})".format(center, inputSteering[0]))
-    print("Prediction for left test image is {} ({})".format(left, inputSteering[1]))
-    print("Prediction for right test image is {} ({})".format(right, inputSteering[2]))
+    print("Prediction for center test image is {} ({})".format(center, input_steering[0]))
+    print("Prediction for left test image is {} ({})".format(left, input_steering[1]))
+    print("Prediction for right test image is {} ({})".format(right, input_steering[2]))
 
 if __name__ == "__main__":
 
