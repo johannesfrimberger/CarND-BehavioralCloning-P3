@@ -1,6 +1,7 @@
 import argparse
 import base64
 import json
+import time as python_time
 
 import numpy as np
 import socketio
@@ -130,6 +131,7 @@ def telemetry(sid, data):
     throttle = 0.5
     send_control(steering_angle, throttle)
 
+    python_time.sleep(0.01)
 
 @sio.on('connect')
 def connect(sid, environ):
