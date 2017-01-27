@@ -1,6 +1,8 @@
 import numpy as np
 from sklearn.model_selection import train_test_split
 import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
+from matplotlib.pyplot import figure, imshow, axis
 
 from keras.models import model_from_json
 from keras.models import Sequential
@@ -193,6 +195,48 @@ def batch_generator(features, steering, batch_size, use_left_right=False):
         yield(batch_features, batch_steering)
 
 
+def visualize_training_set(training_features, training_set, valid_set):
+    """
+    Create visualization for training and validation set
+    :param training_features: training set to analyze
+    :param training_set: training set to analyze
+    :param valid_set: visualization set to analyze
+    """
+    bins = np.linspace(-1.1, 1.1, 20)
+    plt.hist([training_set, valid_set], bins, normed=True, label=["Training Set", "Validation Set"])
+    plt.legend()
+
+    plt.xlabel('Steering angle')
+    plt.ylabel('Occurrences')
+    plt.savefig("img/hist_training_valid.png", bbox_inches='tight')
+
+
+    fig = figure()
+
+    subplot = fig.add_subplot(1, 3, 1)
+    subplot.set_title("Steering Right \n s={}".format(0.5880292))
+    filename_left = "img/center_2016_12_01_13_38_18_712.jpg"
+    image_left = mpimg.imread(filename_left)
+    plt.imshow(image_left)
+    plt.axis('off')
+
+    subplot = fig.add_subplot(1, 3, 2)
+    subplot.set_title("Steering Straight \n s={}".format(0.0))
+    filename_right = "img/center_2016_12_01_13_30_48_287.jpg"
+    image_right = mpimg.imread(filename_right)
+    plt.imshow(image_right)
+    plt.axis('off')
+
+    subplot = fig.add_subplot(1, 3, 3)
+    subplot.set_title("Steering Left \n s={}".format(-0.6009356))
+    filename_center = "img/center_2016_12_01_13_38_09_379.jpg"
+    image_center = mpimg.imread(filename_center)
+    plt.imshow(image_center)
+    plt.axis('off')
+
+    plt.savefig("img/overview_training_images.png", bbox_inches='tight')
+
+
 def main(training_data, n_epochs, load_model, additional_data):
     """
     Train a convolutional neural network to predict the steering angle
@@ -218,6 +262,9 @@ def main(training_data, n_epochs, load_model, additional_data):
         all_steering,
         test_size=0.05,
         random_state=10)
+
+    # Create visualization of the dataset
+    visualize_training_set(training_features, training_steering, valid_steering)
 
     # Give a short summary of the data
     n_training_scene = training_features.shape[0]

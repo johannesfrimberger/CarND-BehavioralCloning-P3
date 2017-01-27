@@ -67,15 +67,24 @@ control request.
 Training
 --------
 
+<img src="img/overview_training_images.png" /> <br />
+
 Initially the model was trained using the dataset provided by Udacity.
 I used an Adam Optimizer with a decreased learning rate of 0.00001
 compared to the default settings.<br />
 Training was done on 5 epochs of the training data with only 5% of the
 data used for validation. This low number was chosen as the metric (MSE)
 does not really provide a good measurement of the how the model will
-perform in the simulator.<br />
+perform in the simulator. <br />
+The distribution of training and validation samples shows that most
+of the data suggest a "straight" steering. With this training data
+the model will show a bias in this direction. Additional training
+data will be necessary and will be recorded "live". <br />
+
+<img src="img/hist_training_valid.png" width="694" height="557" /> <br />
+
 With this training the car was able to drive to the first left turn but
-could not take it.
+could not take it. <br />
 
 Live Trainer
 ------------
